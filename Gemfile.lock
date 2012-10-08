@@ -1,7 +1,7 @@
 PATH
   remote: .
   specs:
-    spree-html-email (1.0.0)
+    spree_html_email (1.0.0)
       premailer-rails3 (~> 1.1.0)
       spree_core (>= 1.0)
 
@@ -254,5 +254,5 @@ DEPENDENCIES
   rb-inotify
   rspec-rails (= 2.6.1)
   ruby-debug19
-  spree-html-email!
+  spree_html_email!
   sqlite3
