@@ -50,43 +50,64 @@
         <%= item.variant.product.name %>
         <%= "(" + variant_options(item.variant) + ")" unless item.variant.option_values.empty? %>
       </td>
-      <td class="price number"><%= number_to_currency(item.price) %></td>
+      <td class="price number"><%= item.single_money.to_html %></td>
       <td class="qty number"><%= item.quantity %></td>
-      <td class="total number"><%= number_to_currency(item.price * item.quantity) %></td>
+      <td class="total number"><%= item.display_amount.to_html %></td>
     </tr>
   <% end %>
   </tbody>
   <tbody id="subtotal" data-hook="order_details_subtotal">
-  <tr id="subtotal-row">
-    <td class="title" colspan="3">
-      <%= t(:subtotal) %>
-    </td>
-    <td class="total number">
-      <%= number_to_currency order.item_total %>
-    </td>
-  </tr>
+    <tr id="subtotal-row">
+      <td class="title" colspan="3"><%= Spree.t(:subtotal) %></td>
+      <td class="total number"><%= order.display_item_total.to_html %></td>
+    </tr>
   </tbody>
+
   <tbody id="order-charges" data-hook="order_details_adjustments">
-  <% order.adjustments.eligible.each do |adjustment| %>
-    <% next if (adjustment.originator_type == "TaxRate") and (adjustment.amount == 0) %>
+    <% if order.line_item_adjustments.exists? %>
+      <% if order.all_adjustments.promotion.eligible.exists? %>
+        <% order.all_adjustments.promotion.eligible.group_by(&:label).each do |label, adjustments| %>
+          <tr class="total">
+            <td class="name" colspan="3"><%= Spree.t(:promotion) %>: <%= label %></td>
+            <td class="total number"><span></<%= Spree::Money.new(adjustments.sum(&:amount), currency: order.currency) %></span></td>
+          </tr>
+        <% end %>
+      <% end %>
+    <% end %>
+
+    <% order.shipments.group_by { |s| s.selected_shipping_rate.name }.each do |name, shipments| %>
+      <tr class="total">
+        <td class="name" colspan="3"><%= Spree.t(:shipping) %>: <%= name %></td>
+        <td class="total number"><span><%= Spree::Money.new(shipments.sum(&:discounted_cost), currency: order.currency).to_html %></span></td>
+      </tr>
+    <% end %>
+
+    <% if order.all_adjustments.tax.exists? %>
+      <% order.all_adjustments.tax.group_by(&:label).each do |label, adjustments| %>
+         <tr class="total">
+           <td class="name" colspan="3"><%= Spree.t(:tax) %>: <%= label %></td>
+           <td class="total number"><span><%= Spree::Money.new(adjustments.sum(&:amount), currency: order.currency) %></span></td>
+         </tr>
+       <% end %>
+    <% end %>
+
+    <% order.adjustments.eligible.each do |adjustment| %>
+      <% next if (adjustment.source_type == 'Spree::TaxRate') and (adjustment.amount == 0) %>
+       <tr class="total">
+         <td class="name" colspan="3"><%= adjustment.label %></td>
+         <td class="total number"><span><%= adjustment.display_amount.to_html %></span></td>
+       </tr>
+     <% end %>
+  </tbody>
+
+  <tbody id="order-total" data-hook="order_details_total">
     <tr class="total">
       <td class="title" colspan="3">
-        <%= adjustment.label %>
+        <%= Spree.t(:order_total) %>
       </td>
       <td class="total number">
-        <%= number_to_currency adjustment.amount %>
+        <span id="order_total"><%= order.display_total.to_html %></span>
       </td>
     </tr>
-  <% end %>
-  </tbody>
-  <tbody id="order-total" data-hook="order_details_total">
-  <tr class="total">
-    <td class="title" colspan="3">
-      <%= t(:order_total) %>
-    </td>
-    <td class="total number">
-      <span id="order_total"><%= number_to_currency order.total %></span>
-    </td>
-  </tr>
   </tbody>
 </table>
